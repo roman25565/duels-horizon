@@ -1,0 +1,105 @@
+# Duels: a ranked duel ladder with Number One / Number Two headbands.
+# Server side only: players need nothing installed (vanilla 26.3 clients
+# and Horizon clients both work).
+
+[mod]
+id = "duels"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+# Horizon Nightly 2026-11-03 (tag nightly-source/2026-11-03-2944480).
+horizon_revision = "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
+
+# The rules, the ladder and the saved state (no game types; tested alone).
+[[module]]
+id = "core"
+file = "crates/horizon-client/src/game.rs"
+name = "duels_core"
+source = "duels_core.rs"
+
+# The game side: files, commands, teleports, messages.
+[[module]]
+id = "glue"
+file = "crates/horizon-client/src/game.rs"
+name = "duels_glue"
+source = "duels_glue.rs"
+
+# /duel ... for everyone, /duelsadmin ... for operators (level 2+).
+[[injection]]
+id = "register"
+hook = "register_commands"
+hook_version = 1
+kind = "HEAD"
+helper = "register.rs"
+bindings = [
+  { name = "commands", ty = "&mut Vec<horizon_client::mod_api::NativeCommand>", value = "&mut *commands" },
+]
+
+[[injection]]
+id = "perform"
+hook = "perform_command"
+hook_version = 1
+kind = "HEAD"
+helper = "perform.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "&horizon_client::mod_api::NativeServerPlayer", value = "player" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "&mut *ran" },
+]
+
+# /duelsadmin from the dedicated server's console.
+[[injection]]
+id = "console"
+hook = "perform_console_command"
+hook_version = 1
+kind = "HEAD"
+helper = "console.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "&mut *ran" },
+]
+
+[[injection]]
+id = "tick"
+hook = "server_tick"
+hook_version = 1
+kind = "HEAD"
+helper = "tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "phase", ty = "horizon_client::mod_api::ServerTickPhase", value = "phase" },
+]
+
+[[injection]]
+id = "died"
+hook = "player_died"
+hook_version = 1
+kind = "HEAD"
+helper = "died.rs"
+bindings = [
+  { name = "player", ty = "u128", value = "player" },
+]
+
+[[injection]]
+id = "login"
+hook = "player_logged_in"
+hook_version = 1
+kind = "HEAD"
+helper = "login.rs"
+bindings = [
+  { name = "player", ty = "u128", value = "player" },
+  { name = "name", ty = "&str", value = "name" },
+]
+
+[[injection]]
+id = "lifecycle"
+hook = "world_lifecycle"
+hook_version = 1
+kind = "HEAD"
+helper = "lifecycle.rs"
+bindings = [
+  { name = "phase", ty = "horizon_client::mod_api::WorldPhase", value = "phase" },
+]
